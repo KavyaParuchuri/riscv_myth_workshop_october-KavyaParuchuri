@@ -12,21 +12,7 @@
    m4_makerchip_module   // (Expanded in Nav-TLV pane.)
 \TLV
    $reset = *reset;
-    
-   //Combinational logic labs (slides 
-   //Inverter
-   //$out = ! $in1;
-   //$out = $in1 || $in2;
-   //$out = $in1 && $in2;
-   //$out = $in1 ^ $in2;
-   
-   //Vectors
-   //$out[4:0] = $in1[3:0] + $in2[3:0];
-   
-   //Mux
-   //$out = $sel ? $in1 : $in2;
-   //$out[7:0] = $sel ? $in1[7:0] : $in2[7:0];
-   
+
    //Combinational  calculator
     $out[31:0] = 
       $op[1:0] == 2'b00
