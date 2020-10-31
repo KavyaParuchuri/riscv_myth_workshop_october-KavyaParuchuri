@@ -152,6 +152,41 @@
    
    //**************************************************************
    
+   //**************************************************************
+   //2-cycle calculator with validity - with single value memory
+   /*|calc
+      @1
+         $reset = *reset;
+         $valid = *reset ? 0 : >>1$valid + 1'b1;
+         $clearsigtomux = $valid || *reset;
+      //Memory for output = val1 for seq calculator
+      ?$valid
+         @1   
+            $val1[31:0] = >>2$out[31:0];
+            $mem[31:0] = >>2$out[31:0];
+            $recall[31:0] = >>2$mem[31:0];
+            //inputs
+            //$val1[31:0] = $rand1[3:0];
+            $val2[31:0] = $rand2[3:0];
+            //comb calc - operations
+            $sum[31:0] = $val1[31:0] + $val2[31:0];
+            $diff[31:0] = $val1[31:0] - $val2[31:0];
+            $prod[31:0] = $val1[31:0] * $val2[31:0];
+            $quot[31:0] = $val1[31:0] / $val2[31:0];
+            //Seq_Calculator
+            //$valid = *reset ? 0 : >>1$valid + 1'b1;
+            //$clearsigtomux = !$valid || *reset;
+         @2
+            $out[31:0] = ($clearsigtomux) ? 32'h00000000 :
+                         ($op[2:0] == 3'b101)? $mem[31:0] :
+                         ($op[2:0] == 3'b100)? $recall[31:0] :
+                         ($op[2:0] == 3'b011)? $quot[31:0] :
+                         ($op[2:0] == 3'b010)? $prod[31:0] :
+                         ($op[2:0] == 3'b001)? $diff[31:0] :
+                         $sum[31:0] ; */
+            
+            
+   //**************************************************************
    
    // Assert these to end simulation (before Makerchip cycle limit).
    *passed = *cyc_cnt > 40;
