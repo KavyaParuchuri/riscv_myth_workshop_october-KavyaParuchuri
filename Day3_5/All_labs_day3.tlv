@@ -9,10 +9,11 @@
    
    // Macro providing required top-level module definition, random
    // stimulus support, and Verilator config.
-   //**************************
-   `include "sqrt32.v"; //comment this out for regular examples which dont use validity we only need m4_makerchip_module
+   
+   `include "sqrt32.v"; //comment this out for regular examples we only need m4_makerchip_module
    m4_makerchip_module   // (Expanded in Nav-TLV pane.)
-   //**************************
+
+   
 
 
 \TLV
@@ -146,15 +147,13 @@
    //2-cycle calculator
    /*|calc
       //Memory for output = val1 for seq calculator
-      @0   
+      @1   
          
          $val1[31:0] = >>2$out[31:0];
          
          //inputs
          //$val1[31:0] = $rand1[3:0];
          $val2[31:0] = $rand2[3:0];
-      @1
-         
          //comb calc - operations
          $sum[31:0] = $val1[31:0] + $val2[31:0];
          $diff[31:0] = $val1[31:0] - $val2[31:0];
@@ -170,7 +169,7 @@
          $out[31:0] = $clearsigtomux ? 32'h00000000 :
                 $op[1] ?
                ($op[0] ? $quot[31:0] : $prod[31:0] ) :
-               ($op[0] ? $diff[31:0] : $sum[31:0] ) ; */
+               ($op[0] ? $diff[31:0] : $sum[31:0] ) ;*/
    
    
    //**************************************************************
@@ -197,13 +196,12 @@
    *passed = *cyc_cnt > 16'd30; */
    
    //**************************************************************
-   //**************************************************************
    //2-cycle calculator with validity
    /*|calc
       @1
          $reset = *reset;
          $valid = *reset ? 0 : >>1$valid + 1'b1;
-         $clearsigtomux = !$valid || *reset;
+         $clearsigtomux = $valid || *reset;
       //Memory for output = val1 for seq calculator
       ?$valid
          @1   
@@ -225,8 +223,45 @@
                    $op[1] ?
                   ($op[0] ? $quot[31:0] : $prod[31:0] ) :
                   ($op[0] ? $diff[31:0] : $sum[31:0] ) ; */
+   
+   //**************************************************************
+   //2-cycle calculator with validity - with single value memory
+   /*|calc
+      @1
+         $reset = *reset;
+         $valid = *reset ? 0 : >>1$valid + 1'b1;
+         $clearsigtomux = $valid || *reset;
+      //Memory for output = val1 for seq calculator
+      ?$valid
+         @1   
+            $val1[31:0] = >>2$out[31:0];
+            $mem[31:0] = >>2$out[31:0];
+            $recall[31:0] = >>2$mem[31:0];
+            //inputs
+            //$val1[31:0] = $rand1[3:0];
+            $val2[31:0] = $rand2[3:0];
+            //comb calc - operations
+            $sum[31:0] = $val1[31:0] + $val2[31:0];
+            $diff[31:0] = $val1[31:0] - $val2[31:0];
+            $prod[31:0] = $val1[31:0] * $val2[31:0];
+            $quot[31:0] = $val1[31:0] / $val2[31:0];
+            //Seq_Calculator
+            //$valid = *reset ? 0 : >>1$valid + 1'b1;
+            //$clearsigtomux = !$valid || *reset;
+         @2
+            $out[31:0] = ($clearsigtomux) ? 32'h00000000 :
+                         ($op[2:0] == 3'b101)? $mem[31:0] :
+                         ($op[2:0] == 3'b100)? $recall[31:0] :
+                         ($op[2:0] == 3'b011)? $quot[31:0] :
+                         ($op[2:0] == 3'b010)? $prod[31:0] :
+                         ($op[2:0] == 3'b001)? $diff[31:0] :
+                         $sum[31:0] ; */
+   //**************************************************************
+            
+            
    // Assert these to end simulation (before Makerchip cycle limit).
-   //*passed = *cyc_cnt > 40; //uncomment this for regular code apart from validity examples
-   //*failed = 1'b0;
+   *passed = *cyc_cnt > 40; //uncomment this for regular code apart from validity examples
+   *failed = 1'b0;
+   //m4+cal_viz(@3)
 \SV
    endmodule
