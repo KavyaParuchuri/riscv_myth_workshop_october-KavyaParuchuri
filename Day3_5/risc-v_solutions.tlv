@@ -9,7 +9,7 @@
 \SV
    m4_makerchip_module   // (Expanded in Nav-TLV pane.)
 \TLV
-
+   $reset = *reset;
    // /====================\
    // | Sum 1 to 9 Program |
    // \====================/
@@ -40,6 +40,7 @@
    m4_define_hier(['M4_IMEM'], M4_NUM_INSTRS)
 
    |cpu
+      
       @0
          $reset = *reset;
          // YOUR CODE HERE
@@ -49,23 +50,20 @@
                >>1$taken_branch ? >>1$br_target_pc :  // (initially $taken_branch == 0)
                                   >>1$pc + 32'b100;
       @1
+         
          // IMem Hookup
          $imem_rd_en = !$reset ;
-         $imem_rd_addr[M4_IMEM_INDEX_CNT-1:0] = $pc[M4_IMEM_INDEX_CNT+1:0];
+         $imem_rd_addr[M4_IMEM_INDEX_CNT-1:0] = $pc[M4_IMEM_INDEX_CNT+1:2];
+         //$imem_rd_addr[7:0] = $pc[9:2];
          $instr[31:0] = $imem_rd_data[31:0];
          
          //Type of Instruction Decode
-         $is_i_instr = $instr[6:2] ==? 5'b0000x ||
-                       $instr[6:2] ==? 5'b010x0 ||
-                       $instr[6:2] == 5'b11001 ;
-         $is_r_instr = $instr[6:2] == 5'b01011 ||
-                       $instr[6:2] == 5'b01100 ||
-                       $instr[6:2] == 5'b01110 ||
-                       $instr[6:2] == 5'b10100 ;
-         $is_s_instr = $instr[6:2] ==? 5'b0100x ;
-         $is_b_instr = $instr[6:2] == 5'b11000 ;
-         $is_j_instr = $instr[6:2] == 5'b11011 ;
-         $is_u_instr = $instr[6:2] ==? 5'b0x101;
+         $is_i_instr = ($instr[6:2] == 5'b00000) || ($instr[6:2] == 5'b00001) || ($instr[6:2] ==? 5'b00100) || ($instr[6:2] == 5'b00110) || ($instr[6:2] == 5'b11001) ;
+         $is_r_instr = ($instr[6:2] == 5'b01011) || ($instr[6:2] == 5'b01100) || ($instr[6:2] == 5'b01110) || ($instr[6:2] == 5'b10100) ;
+         $is_s_instr = ($instr[6:2] == 5'b01000) || ($instr[6:2] == 5'b01001) ;
+         $is_b_instr = ($instr[6:2] == 5'b11000) ;
+         $is_j_instr = ($instr[6:2] == 5'b11011) ;
+         $is_u_instr = ($instr[6:2] == 5'b00101) || ($instr[6:2] == 5'b01101);
          
          //Immediate decode based on Instr Type
          $imm[31:0]  = $is_i_instr ? ( { {21{$instr[31]}} , $instr[30:20] } )  :
@@ -96,7 +94,7 @@
             $funct7[6:0] = $instr[31:25];
             
          //Instruction decode
-         $dec_bits[10:0] = {$funct7[5], $funct3, $opcode} ;
+         $dec_bits[10:0] = {$funct7[5], $funct3[2:0], $opcode[6:0]} ;
          $is_beq = $dec_bits ==? 11'bx_000_1100011;
          $is_bne = $dec_bits ==? 11'bx_001_1100011;
          $is_blt = $dec_bits ==? 11'bx_100_1100011;
@@ -106,13 +104,23 @@
          $is_addi = $dec_bits ==? 11'bx_000_0010011;
          $is_add = $dec_bits ==  11'b0_000_0110011;
          
+         /*$dec_bits[9:0] = {$funct3[2:0], $opcode[6:0]} ;
+         $is_beq = ($dec_bits == 10'b000_1100011);
+         $is_bne = ($dec_bits == 10'b001_1100011);
+         $is_blt = ($dec_bits == 10'b100_1100011);
+         $is_bge = ($dec_bits == 10'b101_1100011);
+         $is_bltu = ($dec_bits == 10'b110_1100011);
+         $is_bgeu = ($dec_bits == 10'b111_1100011);
+         $is_addi = ($dec_bits == 10'b000_0010011);
+         $is_add = ($dec_bits ==  10'b000_0110011);*/
+         
          //Register file read
-         $rf_rd_index1[4:0] = $rs1;
-         $rf_rd_index2[4:0] = $rs2;
+         $rf_rd_index1[4:0] = $rs1[4:0];
+         $rf_rd_index2[4:0] = $rs2[4:0];
          $rf_rd_en1         = $rs1_valid;
          $rf_rd_en2         = $rs2_valid;
-         $src1_value[31:0] = $rf_rd_data1; //check if there is any reg_wr dependancy
-         $src2_value[31:0] = $rf_rd_data2; //check if there is any reg_wr dependancy
+         $src1_value[31:0] = $rf_rd_data1[31:0]; //check if there is any reg_wr dependancy
+         $src2_value[31:0] = $rf_rd_data2[31:0]; //check if there is any reg_wr dependancy
          
          //ALU
          //For this lab its add, addi and blt only - so adding addi and add here
@@ -121,8 +129,8 @@
                           32'bx; //check if x is allowed in makerchip
          
          //Register File Write Hookup
-         $rf_wr_en         = ( $rd_valid ) && ( $rd != 5'b0 );
-         $rf_wr_index[4:0] = $rd;
+         $rf_wr_en         = ( $rd_valid ) && ( $rd[4:0] != 5'b0 );
+         $rf_wr_index[4:0] = $rd[4:0];
          $rf_wr_data[31:0] = $result[31:0];
          
          //Branch Condition
@@ -133,6 +141,7 @@
                          $is_bltu ? ($src1_value[31:0] < $src2_value[31:0]) :
                          $is_bgeu ? ($src1_value[31:0] >= $src2_value[31:0]) :
                                      1'b0;
+         
          
          //Where to branch
          $br_target_pc[31:0] = $taken_branch? ($pc[31:0] + $imm[31:0] ) : 32'b0 ;
@@ -147,7 +156,8 @@
 
 
    // Assert these to end simulation (before Makerchip cycle limit).
-   *passed = *cyc_cnt > 40;
+   //*passed = *cyc_cnt > 40;
+   *passed = |cpu/xreg[10]>>5$value == (1+2+3+4+5+6+7+8+9);
    *failed = 1'b0;
    
    // Macro instantiations for:
@@ -164,4 +174,5 @@
                        // @4 would work for all labs
 \SV
    endmodule
+
 //*****************************************************************************************************************************
