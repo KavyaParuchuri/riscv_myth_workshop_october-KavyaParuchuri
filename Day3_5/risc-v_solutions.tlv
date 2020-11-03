@@ -215,6 +215,7 @@
    m4_asm(ADD, r10, r14, r0)            // Store final result to register a0 so that it can be read by main program
    m4_asm(SW, r0, r10, 100)
    m4_asm(LW, r15, r0, 100)
+   m4_asm(JAL, r7, 00000000000000000000) // Done. Jump to itself (infinite loop). (Up to 20-bit signed immediate plus implicit 0 bit (unlike JALR) provides byte address; last immediate bit should also be 0)
    
    // Optional:
    // m4_asm(JAL, r7, 00000000000000000000) // Done. Jump to itself (infinite loop). (Up to 20-bit signed immediate plus implicit 0 bit (unlike JALR) provides byte address; last immediate bit should also be 0)
@@ -230,8 +231,10 @@
          
          //For LW/SW
          $pc[31:0] = >>1$reset  ? 32'0 :
-               >>3$valid_taken_branch ? >>3$br_target_pc :  // (initially $taken_branch == 0)
+               >>3$valid_taken_branch ? >>3$br_target_pc[31:0] :  // (initially $taken_branch == 0)
                >>3$valid_load ? >>3$pc[31:0] + 32'b100 :
+               >>3$valid_jump && >>3$is_jal ? >>3$br_target_pc[31:0] :
+               >>3$valid_jump && >>3$is_jalr ? >>3$jalr_tgt_pc[31:0] :
                >>1$pc[31:0] + 32'b100; 
                
          //$pc[31:0] = >>1$reset  ? 32'0 :
@@ -348,6 +351,7 @@
          //Where to branch
          //$br_target_pc[31:0] = $valid_taken_branch? ($pc[31:0] + $imm[31:0] ) : 32'b0 ;
          $br_target_pc[31:0] = ($pc[31:0] + $imm[31:0] ) ;
+         $jalr_tgt_pc[31:0] = $src1_value[31:0] + $imm[31:0];
          
       @3
          //Moving valid to cycle 3 for 1 instr per cycle - slide 42
@@ -398,6 +402,9 @@
          //valid load condition
          $valid_load = $valid && $is_load;
          
+         //Jumps and valid jump
+         $is_jump =  $is_jal || $is_jalr;
+         $valid_jump = $valid && $is_jump;
          
          //Register File Write Hookup
          //For LW/SW
