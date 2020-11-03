@@ -142,7 +142,8 @@
          
          
          //Where to branch
-         $br_target_pc[31:0] = $taken_branch? ($pc[31:0] + $imm[31:0] ) : 32'b0 ;
+         //$br_target_pc[31:0] = $taken_branch? ($pc[31:0] + $imm[31:0] ) : 32'b0 ;
+         $br_target_pc[31:0] = ($pc[31:0] + $imm[31:0] ) ;
          
    
    
